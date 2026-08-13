@@ -220,11 +220,7 @@ if ((int)$usuario["id_rol"] === 2) {
         header("Location: cambiar_password.php");
         exit;
     }
-
-    /*
-     * Estudiante que ya cambió su contraseña.
-     */
-
+    
     header("Location: estudiante/dashboard.php");
     exit;
 }
