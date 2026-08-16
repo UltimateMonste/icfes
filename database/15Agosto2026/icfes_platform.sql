@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 16-08-2026 a las 08:08:25
+-- Tiempo de generación: 16-08-2026 a las 08:21:51
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -115,7 +115,10 @@ CREATE TABLE `cursos` (
 INSERT INTO `cursos` (`id_curso`, `grado`, `grupo`, `director`, `estado`) VALUES
 (10, '9', '901', NULL, 'Activo'),
 (11, '10', '1001', NULL, 'Activo'),
-(12, '11', '1101', NULL, 'Activo');
+(12, '11', '1101', NULL, 'Activo'),
+(13, '11', '1102', NULL, 'Activo'),
+(14, '9', '902', NULL, 'Activo'),
+(15, '9', '903', NULL, 'Activo');
 
 -- --------------------------------------------------------
 
@@ -517,7 +520,8 @@ INSERT INTO `usuarios` (`id_usuario`, `nombres`, `apellidos`, `correo`, `passwor
 (2, 'Administrador', 'Principal', 'admin@icfes.local', '$2y$10$WsIg1GC05G6XeRDJGfKFYOqKVZZfeb8FEH6.2LoYGscAZuDyci2Va', '11', NULL, 'avatar_default.png', 1, 0, 1, '2026-08-13 04:46:03', 'ADMIN001', 1, 1, 0, 'Activo', '2026-08-16 00:27:57', NULL, NULL),
 (3, 'Juan', 'Pérez Gómez', 'juan.prueba@test.com', '$2y$10$Uqrokgk5mtDIkE3Yif07luB/RovoGnfTB1E56fPFH.lz8wfu7Uc2e', '11', 12, 'avatar_default.png', 1, 0, 1, '2026-08-16 04:17:23', '100000001', 2, 1, 0, 'Activo', '2026-08-15 23:19:26', '2026-08-15 23:19:33', NULL),
 (4, 'María', 'Rodríguez López', 'maria.prueba@test.com', '$2y$10$CcD2GAaBKUiTDcY9yST6K.mVSq1y5TFkyihGWJsqDaEeQuRDrBhyK', '10', 11, 'avatar_default.png', 1, 0, 1, '2026-08-16 04:17:23', '100000002', 2, 1, 1, 'Activo', NULL, NULL, NULL),
-(5, 'Carlos', 'Martínez Díaz', 'carlos.prueba@test.com', '$2y$10$SfR4wmeBlRzl3nu3sSDiBuOZQJ94Rgc4Ivf1ZrpFrhBHyAX.tOjlm', '9', 10, 'avatar_default.png', 1, 0, 1, '2026-08-16 04:17:24', '100000003', 2, 1, 1, 'Activo', NULL, NULL, NULL);
+(5, 'Carlos', 'Martínez Díaz', 'carlos.prueba@test.com', '$2y$10$SfR4wmeBlRzl3nu3sSDiBuOZQJ94Rgc4Ivf1ZrpFrhBHyAX.tOjlm', '9', 10, 'avatar_default.png', 1, 0, 1, '2026-08-16 04:17:24', '100000003', 2, 1, 1, 'Activo', NULL, NULL, NULL),
+(7, 'Pepe', 'Pepencio', 'popis@gmail.com', '$2y$10$P7lxH0CrxgFSVb8Rtr9JpOw.R5UWpY56StCGqi9KDBINRvEv8yw2O', '9', 15, 'avatar1.png', 1, 0, 1, '2026-08-16 06:21:14', '12345', 2, 1, 1, 'Activo', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -734,7 +738,7 @@ ALTER TABLE `configuracion`
 -- AUTO_INCREMENT de la tabla `cursos`
 --
 ALTER TABLE `cursos`
-  MODIFY `id_curso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_curso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `evaluaciones`
@@ -836,7 +840,7 @@ ALTER TABLE `temas`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Restricciones para tablas volcadas
