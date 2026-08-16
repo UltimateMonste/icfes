@@ -1,0 +1,672 @@
+<?php
+
+require_once __DIR__ . "/../../includes/seguridad.php";
+
+exigirAdmin();
+
+$errores = [];
+$exito = false;
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener ID
+|--------------------------------------------------------------------------
+*/
+
+$id_usuario = filter_input(
+    INPUT_GET,
+    "id",
+    FILTER_VALIDATE_INT
+);
+
+if (!$id_usuario) {
+
+    header("Location: index.php");
+    exit;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener cursos
+|--------------------------------------------------------------------------
+*/
+
+try {
+
+    $sqlCursos = "
+        SELECT
+            id_curso,
+            grado,
+            grupo
+        FROM cursos
+        WHERE estado = 'Activo'
+        ORDER BY grado ASC, grupo ASC
+    ";
+
+    $stmtCursos = $conexion->query($sqlCursos);
+
+    $cursos = $stmtCursos->fetchAll(PDO::FETCH_ASSOC);
+
+} catch (PDOException $e) {
+
+    die("No fue posible cargar los cursos.");
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener estudiante
+|--------------------------------------------------------------------------
+*/
+
+try {
+
+    $sql = "
+        SELECT
+            id_usuario,
+            nombres,
+            apellidos,
+            numero_documento,
+            correo,
+            grado,
+            id_curso,
+            estado
+        FROM usuarios
+        WHERE id_usuario = ?
+        AND id_rol = 2
+        LIMIT 1
+    ";
+
+    $stmt = $conexion->prepare($sql);
+
+    $stmt->execute([
+        $id_usuario
+    ]);
+
+    $estudiante = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$estudiante) {
+
+        header("Location: index.php");
+        exit;
+
+    }
+
+} catch (PDOException $e) {
+
+    die("No fue posible cargar el estudiante.");
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Procesar formulario
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $nombres = trim($_POST["nombres"] ?? "");
+    $apellidos = trim($_POST["apellidos"] ?? "");
+    $correo = trim($_POST["correo"] ?? "");
+    $grado = trim($_POST["grado"] ?? "");
+    $id_curso = (int)($_POST["id_curso"] ?? 0);
+    $estado = trim($_POST["estado"] ?? "Activo");
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validaciones
+    |--------------------------------------------------------------------------
+    */
+
+    if ($nombres === "") {
+        $errores[] = "Los nombres son obligatorios.";
+    }
+
+    if ($apellidos === "") {
+        $errores[] = "Los apellidos son obligatorios.";
+    }
+
+    if (!in_array($grado, ["9", "10", "11"], true)) {
+        $errores[] = "El grado seleccionado no es válido.";
+    }
+
+    if ($id_curso <= 0) {
+        $errores[] = "Debes seleccionar un curso.";
+    }
+
+    if (!in_array($estado, ["Activo", "Inactivo"], true)) {
+        $errores[] = "El estado seleccionado no es válido.";
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validar correo
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $correo !== "" &&
+        !filter_var($correo, FILTER_VALIDATE_EMAIL)
+    ) {
+
+        $errores[] = "El correo electrónico no es válido.";
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validar curso
+    |--------------------------------------------------------------------------
+    */
+
+    if ($id_curso > 0 && $grado !== "") {
+
+        $sqlCurso = "
+            SELECT id_curso, grado
+            FROM cursos
+            WHERE id_curso = ?
+            AND estado = 'Activo'
+            LIMIT 1
+        ";
+
+        $stmtCurso = $conexion->prepare($sqlCurso);
+
+        $stmtCurso->execute([
+            $id_curso
+        ]);
+
+        $curso = $stmtCurso->fetch(PDO::FETCH_ASSOC);
+
+        if (!$curso) {
+
+            $errores[] = "El curso seleccionado no existe o está inactivo.";
+
+        } elseif ($curso["grado"] !== $grado) {
+
+            $errores[] = "El grado no corresponde con el curso seleccionado.";
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Actualizar
+    |--------------------------------------------------------------------------
+    */
+
+    if (empty($errores)) {
+
+        try {
+
+            $sqlUpdate = "
+                UPDATE usuarios
+                SET
+                    nombres = ?,
+                    apellidos = ?,
+                    correo = ?,
+                    grado = ?,
+                    id_curso = ?,
+                    estado = ?
+                WHERE id_usuario = ?
+                AND id_rol = 2
+            ";
+
+            $stmtUpdate = $conexion->prepare($sqlUpdate);
+
+            $stmtUpdate->execute([
+                $nombres,
+                $apellidos,
+                $correo !== "" ? $correo : null,
+                $grado,
+                $id_curso,
+                $estado,
+                $id_usuario
+            ]);
+
+            $exito = true;
+
+
+            /*
+            |------------------------------------------------------------------
+            | Actualizar datos mostrados
+            |------------------------------------------------------------------
+            */
+
+            $estudiante["nombres"] = $nombres;
+            $estudiante["apellidos"] = $apellidos;
+            $estudiante["correo"] = $correo;
+            $estudiante["grado"] = $grado;
+            $estudiante["id_curso"] = $id_curso;
+            $estudiante["estado"] = $estado;
+
+        } catch (PDOException $e) {
+
+            $errores[] = "No fue posible actualizar el estudiante.";
+
+        }
+
+    }
+
+}
+
+?>
+
+
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Editar estudiante | ICFES Platform
+    </title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
+</head>
+
+
+<body class="bg-light">
+
+
+<nav class="navbar navbar-dark bg-dark">
+
+    <div class="container-fluid">
+
+        <a
+            href="../dashboard.php"
+            class="navbar-brand"
+        >
+            <i class="bi bi-mortarboard-fill"></i>
+            ICFES Platform
+        </a>
+
+        <a
+            href="../../cerrar_sesion.php"
+            class="btn btn-outline-light btn-sm"
+        >
+            <i class="bi bi-box-arrow-right"></i>
+            Cerrar sesión
+        </a>
+
+    </div>
+
+</nav>
+
+
+<div class="container py-4">
+
+    <div class="mb-4">
+
+        <h2>
+
+            <i class="bi bi-pencil-square"></i>
+
+            Editar estudiante
+
+        </h2>
+
+        <p class="text-muted">
+
+            Modifica la información académica y personal del estudiante.
+
+        </p>
+
+    </div>
+
+
+    <?php if ($exito): ?>
+
+        <div class="alert alert-success">
+
+            <i class="bi bi-check-circle-fill"></i>
+
+            Estudiante actualizado correctamente.
+
+        </div>
+
+    <?php endif; ?>
+
+
+    <?php if (!empty($errores)): ?>
+
+        <div class="alert alert-danger">
+
+            <strong>No fue posible actualizar:</strong>
+
+            <ul class="mb-0 mt-2">
+
+                <?php foreach ($errores as $error): ?>
+
+                    <li>
+                        <?= htmlspecialchars($error) ?>
+                    </li>
+
+                <?php endforeach; ?>
+
+            </ul>
+
+        </div>
+
+    <?php endif; ?>
+
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <form method="POST">
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Nombres
+                    </label>
+
+                    <input
+                        type="text"
+                        name="nombres"
+                        class="form-control"
+                        maxlength="100"
+                        required
+                        value="<?= htmlspecialchars($estudiante["nombres"]) ?>"
+                    >
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Apellidos
+                    </label>
+
+                    <input
+                        type="text"
+                        name="apellidos"
+                        class="form-control"
+                        maxlength="100"
+                        required
+                        value="<?= htmlspecialchars($estudiante["apellidos"]) ?>"
+                    >
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Número de documento
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="<?= htmlspecialchars($estudiante["numero_documento"]) ?>"
+                        disabled
+                    >
+
+                    <div class="form-text">
+                        El número de documento no puede modificarse desde esta pantalla.
+                    </div>
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Correo electrónico
+                    </label>
+
+                    <input
+                        type="email"
+                        name="correo"
+                        class="form-control"
+                        maxlength="120"
+                        value="<?= htmlspecialchars($estudiante["correo"] ?? "") ?>"
+                    >
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Grado
+                    </label>
+
+                    <select
+                        id="grado"
+                        name="grado"
+                        class="form-select"
+                        required
+                    >
+
+                        <option value="">
+                            Seleccionar grado
+                        </option>
+
+                        <?php foreach (["9", "10", "11"] as $grado): ?>
+
+                            <option
+                                value="<?= $grado ?>"
+                                <?= $estudiante["grado"] === $grado ? "selected" : "" ?>
+                            >
+
+                                <?= $grado ?>°
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Curso
+                    </label>
+
+                    <select
+                        id="id_curso"
+                        name="id_curso"
+                        class="form-select"
+                        required
+                    >
+
+                        <option value="">
+                            Seleccionar curso
+                        </option>
+
+                        <?php foreach ($cursos as $curso): ?>
+
+                            <option
+                                value="<?= (int)$curso["id_curso"] ?>"
+                                data-grado="<?= htmlspecialchars($curso["grado"]) ?>"
+                                <?= (int)$estudiante["id_curso"] === (int)$curso["id_curso"] ? "selected" : "" ?>
+                            >
+
+                                <?= htmlspecialchars($curso["grado"]) ?>°
+                                -
+                                <?= htmlspecialchars($curso["grupo"]) ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </div>
+
+
+                <div class="mb-4">
+
+                    <label class="form-label">
+                        Estado
+                    </label>
+
+                    <select
+                        name="estado"
+                        class="form-select"
+                    >
+
+                        <option
+                            value="Activo"
+                            <?= $estudiante["estado"] === "Activo" ? "selected" : "" ?>
+                        >
+                            Activo
+                        </option>
+
+                        <option
+                            value="Inactivo"
+                            <?= $estudiante["estado"] === "Inactivo" ? "selected" : "" ?>
+                        >
+                            Inactivo
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="alert alert-warning">
+
+                    <i class="bi bi-shield-lock-fill"></i>
+
+                    <strong>Información protegida:</strong>
+
+                    La contraseña, puntos, nivel, avatar y rol no se modifican desde esta pantalla.
+
+                    Para cambiar la contraseña utiliza la opción
+                    <strong>Restablecer</strong>.
+
+                </div>
+
+
+                <div class="d-flex gap-2">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="bi bi-save-fill"></i>
+
+                        Guardar cambios
+
+                    </button>
+
+
+                    <a
+                        href="index.php"
+                        class="btn btn-secondary"
+                    >
+
+                        <i class="bi bi-arrow-left"></i>
+
+                        Volver
+
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const grado = document.getElementById("grado");
+
+const curso = document.getElementById("id_curso");
+
+
+function filtrarCursos() {
+
+    const gradoSeleccionado = grado.value;
+
+    Array.from(curso.options).forEach(function(opcion) {
+
+        if (opcion.value === "") {
+
+            opcion.hidden = false;
+
+            return;
+
+        }
+
+        const gradoCurso = opcion.dataset.grado;
+
+        opcion.hidden =
+            gradoSeleccionado !== "" &&
+            gradoCurso !== gradoSeleccionado;
+
+    });
+
+
+    const seleccion =
+        curso.options[curso.selectedIndex];
+
+    if (
+        seleccion &&
+        seleccion.dataset.grado &&
+        seleccion.dataset.grado !== gradoSeleccionado
+    ) {
+
+        curso.value = "";
+
+    }
+
+}
+
+
+grado.addEventListener(
+    "change",
+    filtrarCursos
+);
+
+filtrarCursos();
+
+</script>
+
+
+</body>
+
+</html>

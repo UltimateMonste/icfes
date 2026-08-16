@@ -23,3 +23,7 @@ config/config.local.php
 
 # Archivos de prueba
 crear_admin.php
+
+#Importacion desde Excel
+/admin/estudiantes/importaciones/
+
